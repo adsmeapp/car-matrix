@@ -107,7 +107,7 @@
 
 <header>
   <div>
-    <div class="logo">КНР: До 160 л.с. <span class="pill"><span class="dot"></span>Live</span></div>
+    <div class="logo">KNR CARS <span class="pill"><span class="dot"></span>Live</span></div>
     <h1>Матрица автомобилей КНР</h1>
   </div>
   <div class="header-meta">Данные обновляются из Google Sheets<br>Кяхта · Забайкальск · Уссурийск · Александров</div>
@@ -116,7 +116,7 @@
 <div class="main">
   <div class="filters">
     <input type="text" id="search" placeholder="Поиск по марке или модели...">
-    <select id="fCountry"><option value="">Страна происхождения</option></select>
+    <select id="fCountry"><option value="">Все страны</option></select>
     <select id="fBrand"><option value="">Все бренды</option></select>
     <select id="fEngine"><option value="">Объём ДВС</option></select>
     <select id="fDrive"><option value="">Привод</option></select>
@@ -186,13 +186,18 @@ async function loadData() {
   const json = JSON.parse(text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/)[1]);
   const rows = json.table.rows;
   const data = [];
+  const COUNTRY_KW = ['бренд', 'японск', 'корейск', 'китайск', 'немецк', 'американск', 'европейск', 'французск', 'итальянск', 'шведск', 'британск'];
   let currentCountry = '';
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i].c;
     if (!r) continue;
     const val = v => r[v] && r[v].v !== null ? String(r[v].v) : '';
     const num = v => r[v] && r[v].v !== null ? Number(r[v].v) : null;
-    if (val(1) && !val(2)) { currentCountry = val(1).trim(); continue; }
+    if (val(1) && !val(2)) {
+      const t = val(1).trim().toLowerCase();
+      if (COUNTRY_KW.some(k => t.includes(k))) currentCountry = val(1).trim();
+      continue;
+    }
     if (!val(2)) continue;
     const brand = val(2).trim();
     if (!brand) continue;

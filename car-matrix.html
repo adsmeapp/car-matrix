@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Матрица автомобилей КНР</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0e0f11; --surface: #16181c; --surface2: #1e2128;
+    --border: rgba(255,255,255,0.08); --border2: rgba(255,255,255,0.14);
+    --accent: #c8f04a; --accent2: #5be8c8;
+    --text: #f0f0f0; --muted: #808899;
+    --font-head: 'Unbounded', sans-serif;
+    --font-body: 'IBM Plex Sans', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+  }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-body); font-size: 14px; min-height: 100vh; }
+  header { padding: 2.5rem 2rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; align-items: flex-end; gap: 2rem; flex-wrap: wrap; }
+  .logo { font-family: var(--font-head); font-size: 13px; letter-spacing: 0.08em; color: var(--accent); text-transform: uppercase; line-height: 1; margin-bottom: 0.4rem; }
+  header h1 { font-family: var(--font-head); font-size: clamp(18px, 3vw, 26px); font-weight: 600; line-height: 1.2; color: var(--text); }
+  .header-meta { margin-left: auto; text-align: right; font-family: var(--font-mono); font-size: 11px; color: var(--muted); line-height: 1.7; }
+  .main { padding: 1.5rem 2rem; }
+
+  .filters { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+  .filters select, .filters input[type="text"] {
+    background: var(--surface); border: 1px solid var(--border2); color: var(--text);
+    font-family: var(--font-body); font-size: 13px; padding: 8px 12px;
+    border-radius: 6px; height: 38px; outline: none;
+    transition: border-color 0.15s; appearance: none; -webkit-appearance: none;
+  }
+  .filters input[type="text"] { min-width: 220px; }
+  .filters select { padding-right: 28px; cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23808899' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center; }
+  .filters input[type="text"]:focus, .filters select:focus { border-color: var(--accent); }
+  .filters input[type="text"]::placeholder { color: var(--muted); }
+
+  .price-filter {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 6px; padding: 4px 10px; height: 38px;
+    transition: border-color 0.15s;
+  }
+  .price-filter:focus-within { border-color: var(--accent); }
+  .price-filter-label { font-family: var(--font-mono); font-size: 10px; color: var(--muted); white-space: nowrap; text-transform: uppercase; letter-spacing: 0.06em; }
+  .price-filter input[type="number"] {
+    background: transparent; border: none; color: var(--text);
+    font-family: var(--font-mono); font-size: 12px; width: 80px;
+    height: auto; padding: 0; outline: none;
+    -moz-appearance: textfield;
+  }
+  .price-filter input[type="number"]::-webkit-inner-spin-button,
+  .price-filter input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+  .price-filter input[type="number"]::placeholder { color: var(--muted); }
+  .price-filter-sep { color: var(--muted); font-size: 12px; }
+
+  .stats { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 1.5rem; margin-top: 6px; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 18px; min-width: 130px; }
+  .stat-label { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 4px; }
+  .stat-val { font-family: var(--font-mono); font-size: 18px; font-weight: 500; color: var(--accent); }
+
+  .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead { position: sticky; top: 0; z-index: 2; }
+  th {
+    background: var(--surface2); color: var(--muted);
+    font-family: var(--font-mono); font-size: 11px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.07em;
+    padding: 11px 14px; text-align: left;
+    border-bottom: 1px solid var(--border2); white-space: nowrap;
+    cursor: pointer; user-select: none; transition: color 0.15s;
+  }
+  th:hover { color: var(--text); }
+  th.sort-asc::after { content: ' ↑'; color: var(--accent); }
+  th.sort-desc::after { content: ' ↓'; color: var(--accent); }
+  td { padding: 9px 14px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+  .brand { font-weight: 500; }
+
+  .badge { display: inline-block; font-family: var(--font-mono); font-size: 10px; padding: 3px 9px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
+  .b-sedan  { background: rgba(90,170,255,0.12); color: #7ec8ff; border: 1px solid rgba(90,170,255,0.2); }
+  .b-hatch  { background: rgba(90,255,160,0.1);  color: #6aeeaa; border: 1px solid rgba(90,255,160,0.2); }
+  .b-suv    { background: rgba(255,200,80,0.1);  color: #ffd06a; border: 1px solid rgba(255,200,80,0.2); }
+  .b-cross  { background: rgba(255,120,180,0.1); color: #ff9ed4; border: 1px solid rgba(255,120,180,0.2); }
+  .b-other  { background: rgba(200,200,200,0.08);color: #aaa;    border: 1px solid rgba(200,200,200,0.15); }
+
+  .price { font-family: var(--font-mono); font-size: 12px; color: var(--accent2); white-space: nowrap; }
+  .price-yuan { font-family: var(--font-mono); font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .empty { text-align: center; padding: 3rem; color: var(--muted); font-family: var(--font-mono); font-size: 13px; }
+  .loading { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 3rem; color: var(--muted); font-family: var(--font-mono); font-size: 13px; }
+  .spinner { width: 16px; height: 16px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  footer { margin-top: 2rem; padding: 1rem 2rem; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+  footer a { font-family: var(--font-mono); font-size: 11px; color: var(--muted); text-decoration: none; transition: color 0.15s; }
+  footer a:hover { color: var(--accent); }
+  .pill { display: inline-flex; align-items: center; gap: 6px; background: rgba(200,240,74,0.08); border: 1px solid rgba(200,240,74,0.2); border-radius: 99px; padding: 3px 10px; font-family: var(--font-mono); font-size: 10px; color: var(--accent); margin-left: 1rem; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  @media (max-width: 600px) { .main { padding: 1rem; } header { padding: 1.5rem 1rem 1rem; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">KNR CARS <span class="pill"><span class="dot"></span>Live</span></div>
+    <h1>Матрица автомобилей КНР</h1>
+  </div>
+  <div class="header-meta">Данные обновляются из Google Sheets<br>Кяхта · Забайкальск · Уссурийск · Александров</div>
+</header>
+
+<div class="main">
+  <div class="filters">
+    <input type="text" id="search" placeholder="Поиск по марке или модели...">
+    <select id="fCountry"><option value="">Все страны</option></select>
+    <select id="fBrand"><option value="">Все бренды</option></select>
+    <select id="fEngine"><option value="">Объём ДВС</option></select>
+    <select id="fDrive"><option value="">Привод</option></select>
+    <select id="fTrans"><option value="">Трансмиссия</option></select>
+    <select id="fBody"><option value="">Все кузова</option></select>
+  </div>
+
+  <div class="filters">
+    <div class="price-filter">
+      <span class="price-filter-label">Кяхта ₽</span>
+      <input type="number" id="pKyakhtaMin" placeholder="от" oninput="applyFilters()">
+      <span class="price-filter-sep">—</span>
+      <input type="number" id="pKyakhtaMax" placeholder="до" oninput="applyFilters()">
+    </div>
+    <div class="price-filter">
+      <span class="price-filter-label">Забайкальск ₽</span>
+      <input type="number" id="pZabaikalskMin" placeholder="от" oninput="applyFilters()">
+      <span class="price-filter-sep">—</span>
+      <input type="number" id="pZabaikalskMax" placeholder="до" oninput="applyFilters()">
+    </div>
+    <div class="price-filter">
+      <span class="price-filter-label">Уссурийск ₽</span>
+      <input type="number" id="pUssuriyskMin" placeholder="от" oninput="applyFilters()">
+      <span class="price-filter-sep">—</span>
+      <input type="number" id="pUssuriyskMax" placeholder="до" oninput="applyFilters()">
+    </div>
+    <div class="price-filter">
+      <span class="price-filter-label">Александров ₽</span>
+      <input type="number" id="pAleksandrovMin" placeholder="от" oninput="applyFilters()">
+      <span class="price-filter-sep">—</span>
+      <input type="number" id="pAleksandrovMax" placeholder="до" oninput="applyFilters()">
+    </div>
+    <div class="price-filter">
+      <span class="price-filter-label">Юань ¥</span>
+      <input type="number" id="pYuanMin" placeholder="от" oninput="applyFilters()">
+      <span class="price-filter-sep">—</span>
+      <input type="number" id="pYuanMax" placeholder="до" oninput="applyFilters()">
+    </div>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="table-wrap">
+    <table>
+      <thead id="thead"></thead>
+      <tbody id="tbody">
+        <tr><td colspan="12"><div class="loading"><div class="spinner"></div>Загрузка данных...</div></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<footer>
+  <a href="https://docs.google.com/spreadsheets/d/1OCAUO9TqknVBZMmyUB9BatgX9m6ydwBXa0TIK_1eGPo" target="_blank">↗ Открыть исходную таблицу</a>
+  <span style="font-family:var(--font-mono);font-size:11px;color:var(--muted);">Данные загружаются из Google Sheets API</span>
+</footer>
+
+<script>
+const SHEET_ID = '1OCAUO9TqknVBZMmyUB9BatgX9m6ydwBXa0TIK_1eGPo';
+let allData = [];
+let sortCol = null, sortDir = 1;
+
+async function loadData() {
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+  const res = await fetch(url);
+  const text = await res.text();
+  const json = JSON.parse(text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/)[1]);
+  const rows = json.table.rows;
+  const data = [];
+  let currentCountry = '';
+  for (let i = 1; i < rows.length; i++) {
+    const r = rows[i].c;
+    if (!r) continue;
+    const val = v => r[v] && r[v].v !== null ? String(r[v].v) : '';
+    const num = v => r[v] && r[v].v !== null ? Number(r[v].v) : null;
+    if (val(1) && !val(2)) { currentCountry = val(1).trim(); continue; }
+    if (!val(2)) continue;
+    const brand = val(2).trim();
+    if (!brand) continue;
+    data.push({
+      country: currentCountry, brand, model: val(3).trim(),
+      engine: val(4), drive: val(5), trans: val(6), body: val(7),
+      kyakhta: num(8), zabaikalsk: num(9), ussuriysk: num(10), aleksandrov: num(11), yuan: num(12)
+    });
+  }
+  return data;
+}
+
+function fmt(n) { return n != null ? Number(n).toLocaleString('ru-RU') + ' ₽' : '—'; }
+function fmtY(n) { return n != null ? Number(n).toLocaleString('ru-RU') + ' ¥' : '—'; }
+
+function badgeClass(body) {
+  const b = (body||'').toLowerCase();
+  if (b.includes('седан')) return 'b-sedan';
+  if (b.includes('хэтч')||b.includes('хатч')) return 'b-hatch';
+  if (b.includes('suv')||b.includes('внедор')||b.includes('кроссо')) return 'b-suv';
+  if (b.includes('cross')||b.includes('кросс')) return 'b-cross';
+  return 'b-other';
+}
+
+function populateSelect(id, values) {
+  const sel = document.getElementById(id), cur = sel.value;
+  while (sel.options.length > 1) sel.remove(1);
+  [...new Set(values)].filter(Boolean).sort((a,b)=>a.localeCompare(b,'ru')).forEach(v=>sel.add(new Option(v,v)));
+  if (cur) sel.value = cur;
+}
+
+function gv(id) { return document.getElementById(id).value; }
+function gn(id) { const v = document.getElementById(id).value; return v === '' ? null : Number(v); }
+
+const COL_KEYS = ['country','brand','model','engine','drive','trans','body','kyakhta','zabaikalsk','ussuriysk','aleksandrov','yuan'];
+
+function getColVal(d, col) {
+  const v = d[COL_KEYS[col]];
+  return [3,7,8,9,10,11].includes(col) ? (v == null ? null : parseFloat(v)||null) : (v||'');
+}
+
+function inRange(val, min, max) {
+  if (val == null) return (min == null && max == null);
+  if (min != null && val < min) return false;
+  if (max != null && val > max) return false;
+  return true;
+}
+
+function applyFilters() {
+  const search  = gv('search').toLowerCase();
+  const country = gv('fCountry'), brand = gv('fBrand'), body = gv('fBody');
+  const drive   = gv('fDrive'),   trans = gv('fTrans'), engine = gv('fEngine');
+  const kMin = gn('pKyakhtaMin'),    kMax = gn('pKyakhtaMax');
+  const zMin = gn('pZabaikalskMin'), zMax = gn('pZabaikalskMax');
+  const uMin = gn('pUssuriyskMin'),  uMax = gn('pUssuriyskMax');
+  const aMin = gn('pAleksandrovMin'),aMax = gn('pAleksandrovMax');
+  const yMin = gn('pYuanMin'),       yMax = gn('pYuanMax');
+
+  let filtered = allData.filter(d => {
+    if (search  && !(d.brand+' '+d.model).toLowerCase().includes(search)) return false;
+    if (country && d.country !== country) return false;
+    if (brand   && d.brand   !== brand)   return false;
+    if (body    && d.body    !== body)    return false;
+    if (drive   && d.drive   !== drive)   return false;
+    if (trans   && d.trans   !== trans)   return false;
+    if (engine  && d.engine  !== engine)  return false;
+    if (!inRange(d.kyakhta,    kMin, kMax)) return false;
+    if (!inRange(d.zabaikalsk, zMin, zMax)) return false;
+    if (!inRange(d.ussuriysk,  uMin, uMax)) return false;
+    if (!inRange(d.aleksandrov,aMin, aMax)) return false;
+    if (!inRange(d.yuan,       yMin, yMax)) return false;
+    return true;
+  });
+
+  if (sortCol !== null) {
+    filtered.sort((a,b) => {
+      let av = getColVal(a, sortCol), bv = getColVal(b, sortCol);
+      if (typeof av === 'string') return sortDir * av.localeCompare(bv,'ru');
+      if (av == null) return 1; if (bv == null) return -1;
+      return sortDir * (av - bv);
+    });
+  }
+  renderTable(filtered);
+  renderStats(filtered);
+}
+
+function renderStats(data) {
+  const prices = data.map(d=>d.kyakhta).filter(v=>v!=null);
+  const min = prices.length ? Math.min(...prices) : null;
+  const max = prices.length ? Math.max(...prices) : null;
+  const avg = prices.length ? Math.round(prices.reduce((a,b)=>a+b,0)/prices.length) : null;
+  document.getElementById('stats').innerHTML = `
+    <div class="stat"><div class="stat-label">Моделей</div><div class="stat-val">${data.length}</div></div>
+    ${min!=null?`<div class="stat"><div class="stat-label">Мин (Кяхта)</div><div class="stat-val">${fmt(min)}</div></div>`:''}
+    ${avg!=null?`<div class="stat"><div class="stat-label">Среднее (Кяхта)</div><div class="stat-val">${fmt(avg)}</div></div>`:''}
+    ${max!=null?`<div class="stat"><div class="stat-label">Макс (Кяхта)</div><div class="stat-val">${fmt(max)}</div></div>`:''}
+  `;
+}
+
+const COLS = ['Страна','Марка','Модель','Объём','Привод','Трансмиссия','Кузов','Кяхта, ₽','Забайкальск, ₽','Уссурийск, ₽','Александров, ₽','Юань, ¥'];
+
+function renderTable(data) {
+  document.getElementById('thead').innerHTML = '<tr>' + COLS.map((c,i) => {
+    const cls = sortCol===i ? (sortDir===1?'sort-asc':'sort-desc') : '';
+    return `<th class="${cls}" onclick="setSort(${i})">${c}</th>`;
+  }).join('') + '</tr>';
+
+  const tbody = document.getElementById('tbody');
+  if (!data.length) { tbody.innerHTML = `<tr><td colspan="12"><div class="empty">Ничего не найдено</div></td></tr>`; return; }
+  tbody.innerHTML = data.map(d => `<tr>
+    <td style="color:var(--muted);font-size:12px;">${d.country||'—'}</td>
+    <td class="brand">${d.brand}</td>
+    <td>${d.model}</td>
+    <td style="font-family:var(--font-mono);font-size:12px;">${d.engine||'—'}</td>
+    <td>${d.drive||'—'}</td>
+    <td style="font-family:var(--font-mono);font-size:12px;">${d.trans||'—'}</td>
+    <td><span class="badge ${badgeClass(d.body)}">${d.body||'—'}</span></td>
+    <td class="price">${fmt(d.kyakhta)}</td>
+    <td class="price">${fmt(d.zabaikalsk)}</td>
+    <td class="price">${fmt(d.ussuriysk)}</td>
+    <td class="price">${fmt(d.aleksandrov)}</td>
+    <td class="price-yuan">${fmtY(d.yuan)}</td>
+  </tr>`).join('');
+}
+
+function setSort(col) { sortDir = sortCol===col ? sortDir*-1 : 1; sortCol=col; applyFilters(); }
+
+async function init() {
+  try {
+    allData = await loadData();
+    populateSelect('fCountry', allData.map(d=>d.country));
+    populateSelect('fBrand',   allData.map(d=>d.brand));
+    populateSelect('fBody',    allData.map(d=>d.body));
+    populateSelect('fDrive',   allData.map(d=>d.drive));
+    populateSelect('fTrans',   allData.map(d=>d.trans));
+    populateSelect('fEngine',  allData.map(d=>d.engine));
+    ['search','fCountry','fBrand','fBody','fDrive','fTrans','fEngine'].forEach(id => {
+      document.getElementById(id).addEventListener(id==='search'?'input':'change', applyFilters);
+    });
+    applyFilters();
+  } catch(e) {
+    document.getElementById('tbody').innerHTML =
+      `<tr><td colspan="12"><div class="empty">Ошибка загрузки. Убедитесь, что таблица открыта для всех по ссылке.</div></td></tr>`;
+  }
+}
+init();
+</script>
+</body>
+</html>
